@@ -1,7 +1,5 @@
 package ru.headhunter;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +9,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.sql.Connection;
 
 public class Main {
     private static final int THREAD_COUNT = 10;
@@ -65,7 +62,8 @@ public class Main {
                         selectEmployees(dbManager);
                         break;
                     case 6:
-                        optimizeDatabase(dbManager);
+                        measureQueryExecutionTime(dbManager);
+                        measureOptimizedQueryExecutionTime(dbManager);
                         break;
                     case 7:
                         System.out.println("Exiting...");
@@ -257,11 +255,52 @@ public class Main {
         System.out.println("Query execution time: " + (endTime - startTime) + " ms");
     }
 
-    private static void optimizeDatabase(DatabaseManager dbManager) {
-        // Оптимизация базы данных
-        // Пример: выполнение VACUUM для PostgreSQL
-        String query = "VACUUM";
-        dbManager.executeUpdate(query);
-        System.out.println("Database optimized successfully.");
+    private static void measureQueryExecutionTime(DatabaseManager dbManager) {
+        String query = "SELECT * FROM employees WHERE gender = 'Male' AND full_name LIKE 'F%'";
+
+        long startTime = System.currentTimeMillis();
+
+        try (Connection conn = dbManager.getConnection(); // Получаем подключение из DatabaseManager
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            // Опционально, вы можете обработать результат здесь
+            while (rs.next()) {
+                // Пример обработки результатов
+                System.out.println("ID: " + rs.getInt("id") + ", Name: " + rs.getString("full_name") +
+                        ", Birth Date: " + rs.getDate("birth_date") + ", Gender: " + rs.getString("gender"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("Query execution time: " + (endTime - startTime) + " ms");
     }
+
+    private static void measureOptimizedQueryExecutionTime(DatabaseManager dbManager) {
+        // Запрос для измерения времени выполнения
+        String query = "SELECT * FROM employees WHERE gender = 'Male' AND full_name LIKE 'F%'";
+
+        long startTime = System.currentTimeMillis();
+
+        try (Connection conn = dbManager.getConnection(); // Получаем подключение из DatabaseManager
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            // Обработка результатов запроса (если нужно)
+            while (rs.next()) {
+                // Пример обработки результатов
+                System.out.println("ID: " + rs.getInt("id") + ", Name: " + rs.getString("full_name") +
+                        ", Birth Date: " + rs.getDate("birth_date") + ", Gender: " + rs.getString("gender"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("Optimized query execution time: " + (endTime - startTime) + " ms");
+    }
+
+
 }
